@@ -12,11 +12,17 @@ use mpl_token_metadata::{
     ID as MetadataTokenId,
 };
 
-declare_id!("9DgBFkB3cXa4gAFJjkbggw8TmVLjmkAuDMXtqWGe6R9M");
-
+pub mod account;
 pub mod constants;
 pub mod errors;
-pub mod accounts;
+
+use account::*; 
+use constants::*;
+use errors::*;
+
+declare_id!("9DgBFkB3cXa4gAFJjkbggw8TmVLjmkAuDMXtqWGe6R9M");
+
+
 
 #[program]
 pub mod anchor_nft_staking {
@@ -25,9 +31,9 @@ pub mod anchor_nft_staking {
 
 
     pub fn stake(ctx: Context<Stake>) -> Result<()> {
-        let mut fixed_pool = ctx.accounts.stake_list.load_mut()?;
-        fixed_pool.staked_list[1] = ctx.accounts.nft_mint.key();
-        msg!("{:?}", fixed_pool.staked_list);
+       
+        ctx.accounts.stake_list.staked_list[1] = ctx.accounts.nft_mint.key();
+        msg!("{:?}", ctx.accounts.stake_list.staked_list);
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
         
@@ -61,7 +67,7 @@ pub mod anchor_nft_staking {
         )?;
 
         // let tokensowed = ctx.accounts. // calc_rate(ctx.accounts.stake_account_state.staked_amount, clock.unix_timestamp, ctx.accounts.stake_account_state.tokens_owed);
-        ctx.accounts.stake_account_state.tokens_owed = tokensowed;
+        // ctx.accounts.stake_account_state.tokens_owed = tokensowed;
         // ctx.accounts.stake_account_state.stakedtokens.push(ctx.accounts.nft_mint.key());
         ctx.accounts.stake_account_state.user_pubkey = ctx.accounts.user.key();
         ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
@@ -70,7 +76,7 @@ pub mod anchor_nft_staking {
         Ok(())
     }
 
-    pub fn redeem(ctx: Context<accounts::__cpi_client_accounts_redeem::Redeem>) -> Result<()> {
+    pub fn redeem(ctx: Context<Redeem>) -> Result<()> {
         require!(
             ctx.accounts.stake_account_state.is_initialized,
             errors::StakeError::UninitializedAccount
@@ -122,8 +128,6 @@ pub mod anchor_nft_staking {
             ctx.accounts.stake_account_state.is_initialized,
             StakeError::UninitializedAccount
         );
-
-
 
         msg!("Thawing token account");
         let authority_bump = *ctx.bumps.get("program_authority").unwrap();
@@ -196,4 +200,132 @@ pub mod anchor_nft_staking {
 
         Ok(())
     }
+}
+
+
+
+// Account Section 
+
+
+#[derive(Accounts)]
+pub struct Stake<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(
+        mut,
+        associated_token::mint=nft_mint,
+        associated_token::authority=user
+    )]
+    pub nft_token_account: Account<'info, TokenAccount>,
+    pub nft_mint: Account<'info, Mint>,
+    /// CHECK: Manual validation
+    #[account(owner=MetadataTokenId)]
+    pub nft_edition: UncheckedAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer=user,
+        space = std::mem::size_of::<UserStakeInfo>() + 12,
+        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
+        bump
+    )]
+    pub stake_account_state: Account<'info, UserStakeInfo>,
+    // #[account(zero)]
+    // pub stake_list: AccountLoader<'info, StakedTokenINfo>,
+    #[account(
+        init_if_needed,
+        payer=user,
+        space = std::mem::size_of::<GlobalStake>() + 12,
+        seeds = [b"account_global".as_ref()],
+        bump
+    )]
+    pub global_state: Account<'info, GlobalStake>,
+    #[account(
+        init_if_needed,
+        payer=user,
+        space = std::mem::size_of::<StakedTokenINfo>() + 12,
+        seeds = [user.key().as_ref(), b"stake_list".as_ref()],
+        bump
+    )]
+    pub stake_list: Account<'info, StakedTokenINfo>,
+    /// CHECK: Manual validation
+    #[account(mut, seeds=["authority".as_bytes().as_ref()], bump)]
+    pub program_authority: UncheckedAccount<'info>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub metadata_program: Program<'info, Metadata>,
+}
+
+#[derive(Accounts)]
+pub struct Redeem<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(
+        mut,
+        token::authority=user
+    )]
+    pub nft_token_account: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
+        bump,
+    )]
+    pub stake_account_state: Account<'info, UserStakeInfo>,
+    
+    #[account(mut)]
+    pub stake_mint: Account<'info, Mint>,
+    /// CHECK: manual check
+    #[account(seeds = ["mint".as_bytes().as_ref()], bump)]
+    pub stake_authority: UncheckedAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer=user,
+        associated_token::mint=stake_mint,
+        associated_token::authority=user
+    )]
+    pub user_stake_ata: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
+#[derive(Accounts)]
+pub struct Unstake<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(
+        mut,
+        token::authority=user
+    )]
+    pub nft_token_account: Account<'info, TokenAccount>,
+    pub nft_mint: Account<'info, Mint>,
+    /// CHECK: Manual validation
+    #[account(owner=MetadataTokenId)]
+    pub nft_edition: UncheckedAccount<'info>,
+    #[account(
+        mut,
+        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
+        bump
+    )]
+    pub stake_account_state: Account<'info, UserStakeInfo>,
+    /// CHECK: manual check
+    #[account(mut, seeds=["authority".as_bytes().as_ref()], bump)]
+    pub program_authority: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub stake_mint: Account<'info, Mint>,
+    /// CHECK: manual check
+    #[account(seeds = ["mint".as_bytes().as_ref()], bump)]
+    pub stake_authority: UncheckedAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer=user,
+        associated_token::mint=stake_mint,
+        associated_token::authority=user
+    )]
+    pub user_stake_ata: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+    pub metadata_program: Program<'info, Metadata>,
 }

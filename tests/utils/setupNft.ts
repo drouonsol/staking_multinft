@@ -5,6 +5,8 @@ import {
 } from "@metaplex-foundation/js"
 import { createMint, getAssociatedTokenAddress } from "@solana/spl-token"
 import * as anchor from "@project-serum/anchor"
+import { SystemProgram } from "@project-serum/anchor"
+import { PublicKey } from "@solana/web3.js"
 
 export const setupNft = async (program, payer) => {
   const metaplex = Metaplex.make(program.provider.connection)
@@ -37,6 +39,14 @@ export const setupNft = async (program, payer) => {
     program.programId
   )
 
+  let userFixedPoolKey = await PublicKey.createWithSeed(
+    payer.publicKey,
+    "newwallet",
+    program.programId,
+  );
+
+    console.log("User Pool", userFixedPoolKey.toBase58())
+
   const [stakedList] = await anchor.web3.PublicKey.findProgramAddress(
     [payer.publicKey.toBuffer(),Buffer.from("")],
     program.programId
@@ -59,5 +69,6 @@ export const setupNft = async (program, payer) => {
     mint: mint,
     mintAuth: mintAuth,
     tokenAddress: tokenAddress,
+    userFixedPoolKey: userFixedPoolKey,
   }
 }
