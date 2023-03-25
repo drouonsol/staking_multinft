@@ -28,10 +28,17 @@ export const setupNft = async (program, payer) => {
   )
 
 
+  
+
   console.log("delegated authority pda: ", delegatedAuthPda.toBase58())
 
   const [mintAuth] = await anchor.web3.PublicKey.findProgramAddress(
     [Buffer.from("mint")],
+    program.programId
+  )
+
+  const [stakedList] = await anchor.web3.PublicKey.findProgramAddress(
+    [payer.publicKey.toBuffer(),Buffer.from("")],
     program.programId
   )
 

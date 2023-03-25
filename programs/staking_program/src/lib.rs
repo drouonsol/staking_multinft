@@ -14,12 +14,20 @@ use mpl_token_metadata::{
 
 declare_id!("9DgBFkB3cXa4gAFJjkbggw8TmVLjmkAuDMXtqWGe6R9M");
 
+pub mod constants;
+pub mod errors;
+pub mod accounts;
+
 #[program]
 pub mod anchor_nft_staking {
     use super::*;
 
+
+
     pub fn stake(ctx: Context<Stake>) -> Result<()> {
-       
+        let mut fixed_pool = ctx.accounts.stake_list.load_mut()?;
+        fixed_pool.staked_list[1] = ctx.accounts.nft_mint.key();
+        msg!("{:?}", fixed_pool.staked_list);
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
         
@@ -52,20 +60,20 @@ pub mod anchor_nft_staking {
             &[&[b"authority", &[authority_bump]]],
         )?;
 
-        let tokensowed = calc_rate(ctx.accounts.stake_state.staked_amount, clock.unix_timestamp, ctx.accounts.stake_state.tokens_owed);
-        ctx.accounts.stake_state.tokens_owed = tokensowed;
-        // ctx.accounts.stake_state.stakedtokens.push(ctx.accounts.nft_mint.key());
-        ctx.accounts.stake_state.user_pubkey = ctx.accounts.user.key();
-        ctx.accounts.stake_state.stake_start_time = clock.unix_timestamp;
-        ctx.accounts.stake_state.is_initialized = true;
-        // msg!("{:?}", ctx.accounts.stake_state.stakedtokens);
+        // let tokensowed = ctx.accounts. // calc_rate(ctx.accounts.stake_account_state.staked_amount, clock.unix_timestamp, ctx.accounts.stake_account_state.tokens_owed);
+        ctx.accounts.stake_account_state.tokens_owed = tokensowed;
+        // ctx.accounts.stake_account_state.stakedtokens.push(ctx.accounts.nft_mint.key());
+        ctx.accounts.stake_account_state.user_pubkey = ctx.accounts.user.key();
+        ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
+        ctx.accounts.stake_account_state.is_initialized = true;
+        // msg!("{:?}", ctx.accounts.stake_account_state.stakedtokens);
         Ok(())
     }
 
-    pub fn redeem(ctx: Context<Redeem>) -> Result<()> {
+    pub fn redeem(ctx: Context<accounts::__cpi_client_accounts_redeem::Redeem>) -> Result<()> {
         require!(
-            ctx.accounts.stake_state.is_initialized,
-            StakeError::UninitializedAccount
+            ctx.accounts.stake_account_state.is_initialized,
+            errors::StakeError::UninitializedAccount
         );
 
 
@@ -74,11 +82,11 @@ pub mod anchor_nft_staking {
 
         msg!(
             "Stake last redeem: {:?}",
-            ctx.accounts.stake_state.stake_start_time 
+            ctx.accounts.stake_account_state.stake_start_time 
         );
 
         msg!("Current time: {:?}", clock.unix_timestamp);
-        let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.stake_start_time ;
+        let unix_time = clock.unix_timestamp - ctx.accounts.stake_account_state.stake_start_time ;
         msg!("Seconds since last redeem: {}", unix_time);
         let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         msg!("Elligible redeem amount: {}", redeem_amount);
@@ -100,10 +108,10 @@ pub mod anchor_nft_staking {
             redeem_amount.try_into().unwrap(),
         )?;
 
-        ctx.accounts.stake_state.stake_start_time  = clock.unix_timestamp;
+        ctx.accounts.stake_account_state.stake_start_time  = clock.unix_timestamp;
         msg!(
             "Updated last stake redeem time: {:?}",
-            ctx.accounts.stake_state.stake_start_time 
+            ctx.accounts.stake_account_state.stake_start_time 
         );
 
         Ok(())
@@ -111,7 +119,7 @@ pub mod anchor_nft_staking {
 
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
         require!(
-            ctx.accounts.stake_state.is_initialized,
+            ctx.accounts.stake_account_state.is_initialized,
             StakeError::UninitializedAccount
         );
 
@@ -152,11 +160,11 @@ pub mod anchor_nft_staking {
 
         msg!(
             "Stake last redeem: {:?}",
-            ctx.accounts.stake_state.stake_start_time 
+            ctx.accounts.stake_account_state.stake_start_time 
         );
 
         msg!("Current time: {:?}", clock.unix_timestamp);
-        let unix_time = clock.unix_timestamp - ctx.accounts.stake_state.stake_start_time ;
+        let unix_time = clock.unix_timestamp - ctx.accounts.stake_account_state.stake_start_time ;
         msg!("Seconds since last redeem: {}", unix_time);
         let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
         msg!("Elligible redeem amount: {}", redeem_amount);
@@ -178,178 +186,14 @@ pub mod anchor_nft_staking {
             redeem_amount.try_into().unwrap(),
         )?;
 
-        ctx.accounts.stake_state.stake_start_time  = clock.unix_timestamp;
+        ctx.accounts.stake_account_state.stake_start_time  = clock.unix_timestamp;
         msg!(
             "Updated last stake redeem time: {:?}",
-            ctx.accounts.stake_state.stake_start_time 
+            ctx.accounts.stake_account_state.stake_start_time 
         );
 
 
 
         Ok(())
     }
-}
-
-#[derive(Accounts)]
-pub struct Stake<'info> {
-    #[account(mut)]
-    pub user: Signer<'info>,
-    #[account(
-        mut,
-        associated_token::mint=nft_mint,
-        associated_token::authority=user
-    )]
-    pub nft_token_account: Account<'info, TokenAccount>,
-    pub nft_mint: Account<'info, Mint>,
-    /// CHECK: Manual validation
-    #[account(owner=MetadataTokenId)]
-    pub nft_edition: UncheckedAccount<'info>,
-    #[account(
-        init_if_needed,
-        payer=user,
-        space = std::mem::size_of::<UserStakeInfo>() + 12,
-        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
-        bump
-    )]
-    pub stake_state: Account<'info, UserStakeInfo>,
-    /// CHECK: Manual validation
-    #[account(mut, seeds=["authority".as_bytes().as_ref()], bump)]
-    pub program_authority: UncheckedAccount<'info>,
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
-    pub metadata_program: Program<'info, Metadata>,
-}
-
-#[derive(Accounts)]
-pub struct Redeem<'info> {
-    #[account(mut)]
-    pub user: Signer<'info>,
-    #[account(
-        mut,
-        token::authority=user
-    )]
-    pub nft_token_account: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
-        bump,
-    )]
-    pub stake_state: Account<'info, UserStakeInfo>,
-    #[account(mut)]
-    pub stake_mint: Account<'info, Mint>,
-    /// CHECK: manual check
-    #[account(seeds = ["mint".as_bytes().as_ref()], bump)]
-    pub stake_authority: UncheckedAccount<'info>,
-    #[account(
-        init_if_needed,
-        payer=user,
-        associated_token::mint=stake_mint,
-        associated_token::authority=user
-    )]
-    pub user_stake_ata: Account<'info, TokenAccount>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
-}
-
-#[derive(Accounts)]
-pub struct Unstake<'info> {
-    #[account(mut)]
-    pub user: Signer<'info>,
-    #[account(
-        mut,
-        token::authority=user
-    )]
-    pub nft_token_account: Account<'info, TokenAccount>,
-    pub nft_mint: Account<'info, Mint>,
-    /// CHECK: Manual validation
-    #[account(owner=MetadataTokenId)]
-    pub nft_edition: UncheckedAccount<'info>,
-    #[account(
-        mut,
-        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
-        bump
-    )]
-    pub stake_state: Account<'info, UserStakeInfo>,
-    /// CHECK: manual check
-    #[account(mut, seeds=["authority".as_bytes().as_ref()], bump)]
-    pub program_authority: UncheckedAccount<'info>,
-    #[account(mut)]
-    pub stake_mint: Account<'info, Mint>,
-    /// CHECK: manual check
-    #[account(seeds = ["mint".as_bytes().as_ref()], bump)]
-    pub stake_authority: UncheckedAccount<'info>,
-    #[account(
-        init_if_needed,
-        payer=user,
-        associated_token::mint=stake_mint,
-        associated_token::authority=user
-    )]
-    pub user_stake_ata: Account<'info, TokenAccount>,
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
-    pub metadata_program: Program<'info, Metadata>,
-}
-
-#[derive(Clone)]
-pub struct Metadata;
-
-impl anchor_lang::Id for Metadata {
-    fn id() -> Pubkey {
-        MetadataTokenId
-    }
-
-
-}
-
-
-    fn calc_rate(amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64 {
-        let dailyrwrd = 10;
-        let clock = Clock::get().unwrap();
-        let staked_seconds = clock.unix_timestamp - laststaked;
-        let stakedrate: i64 = (staked_seconds) * (amountstaked as i64) / 60 * 60 * 24 * i64::pow(10, 9) * (dailyrwrd as i64) + tokensowed; 
-         msg!("Tokens Owed To User : {}", stakedrate);
-        return stakedrate;
-    }
-
-
-#[account]
-pub struct UserStakeInfo {
-    pub stake_start_time: i64,
-    pub tokens_owed: i64,
-    pub staked_amount: i8,
-    pub user_pubkey: Pubkey,
-    pub is_initialized: bool, 
-    pub staked_list: Vec<[Pubkey; 32]> 
-}
-
-impl UserStakeInfo {
-    pub fn new_stake(&mut self,item: Pubkey) {
-        self.staked_amount += 1;
-        msg!("Total NFTs Staked: {}", self.staked_amount)
-    }
-
-    // pub fn new_unstake(&mut self, owner: Pubkey, nft_mint: Pubkey, now: i64) {
-    //     require!((self.user_pubkey == owner), StakeError::InvalidOwner);
-        
-    // }
-} 
-
-
-#[error_code]
-pub enum StakeError {
-    #[msg("NFT already staked")]
-    AlreadyStaked,
-
-    #[msg("State account is uninitialized")]
-    UninitializedAccount,
-
-    #[msg("Stake state is invalid")]
-    InvalidStakeState,
-
-    #[msg("Nft not owned by user")]
-    InvalidOwner,
 }
