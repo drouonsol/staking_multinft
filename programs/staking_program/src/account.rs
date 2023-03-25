@@ -42,7 +42,7 @@ pub struct UserStakeInfo {
 #[account]
 pub struct StakedTokenINfo {
     pub staked_nfts: i8,
-    pub staked_list: [Pubkey; 6]
+    pub staked_list: [Pubkey; 6],
 }  
 
 
@@ -85,8 +85,19 @@ impl UserStakeInfo {
 impl StakedTokenINfo {
     pub fn new_stake(&mut self,item: Pubkey) {
         msg!("Adding New Staked NFT");
-        self.staked_list[1] = item;
+        self.staked_list[self.staked_nfts as usize] = item;
         self.staked_nfts += 1;
         
+    }
+
+    pub fn remove_nft(&mut self, item: Pubkey, systemprogram: Pubkey) {
+        self.staked_nfts -= 1;
+        if !(self.staked_list.contains(&item)) {
+            msg!("Error.")
+        } else {
+            self.staked_nfts -= 1;
+            self.staked_list[self.staked_nfts as usize] = systemprogram;
+        }
+
     }
 } 

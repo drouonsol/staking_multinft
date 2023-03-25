@@ -31,8 +31,9 @@ pub mod anchor_nft_staking {
 
 
     pub fn stake(ctx: Context<Stake>) -> Result<()> {
-       
-        ctx.accounts.stake_list.staked_list[1] = ctx.accounts.nft_mint.key();
+        let index = ctx.accounts.stake_list.staked_nfts as usize;
+        ctx.accounts.stake_list.staked_list[index] = ctx.accounts.nft_mint.key();
+        ctx.accounts.stake_list.new_stake(ctx.accounts.nft_mint.key());
         msg!("{:?}", ctx.accounts.stake_list.staked_list);
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
@@ -123,11 +124,16 @@ pub mod anchor_nft_staking {
         Ok(())
     }
 
+
+
+
+
     pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
         require!(
             ctx.accounts.stake_account_state.is_initialized,
             StakeError::UninitializedAccount
         );
+
 
         msg!("Thawing token account");
         let authority_bump = *ctx.bumps.get("program_authority").unwrap();
@@ -161,7 +167,7 @@ pub mod anchor_nft_staking {
         token::revoke(cpi_revoke_ctx)?;
 
         let clock = Clock::get()?;
-
+      
         msg!(
             "Stake last redeem: {:?}",
             ctx.accounts.stake_account_state.stake_start_time 
@@ -308,6 +314,9 @@ pub struct Unstake<'info> {
         bump
     )]
     pub stake_account_state: Account<'info, UserStakeInfo>,
+    // #[account(zero)]
+    // pub stake_list: AccountLoader<'info, StakedTokenINfo>
+
     /// CHECK: manual check
     #[account(mut, seeds=["authority".as_bytes().as_ref()], bump)]
     pub program_authority: UncheckedAccount<'info>,
