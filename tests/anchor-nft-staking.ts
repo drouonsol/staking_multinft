@@ -6,7 +6,7 @@ import { PROGRAM_ID as METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-toke
 import { expect } from "chai"
 import { getAccount } from "@solana/spl-token"
 import { findCandyMachinesByPublicKeyFieldOperation } from "@metaplex-foundation/js"
-import { SystemProgram } from "@solana/web3.js"
+import { Keypair, SystemProgram } from "@solana/web3.js"
 
 describe("anchor-nft-staking", () => {
   // Configure the client to use the local cluster.
@@ -16,7 +16,7 @@ describe("anchor-nft-staking", () => {
   const program = anchor.workspace.AnchorNftStaking as Program<AnchorNftStaking>
 
   const wallet = anchor.workspace.AnchorNftStaking.provider.wallet
-
+  let  stakeList = Keypair.generate()
   let delegatedAuthPda: anchor.web3.PublicKey
   let nft: any
   let mintAuth: anchor.web3.PublicKey
@@ -35,14 +35,18 @@ describe("anchor-nft-staking", () => {
     const stake = await program.methods
       .stake()
       .accounts({
+        
         nftTokenAccount: nft.tokenAddress,
         nftMint: nft.mintAddress,
         nftEdition: nft.masterEditionAddress,
+        stakeList: stakeList.publicKey,
         // stakeList: userFixedPoolKey,
         metadataProgram: METADATA_PROGRAM_ID,
 
       })
-      .rpc()
+      .rpc({
+        skipPreflight: true
+      })
 
       console.log(stake)
 

@@ -39,7 +39,7 @@ pub struct UserStakeInfo {
   
 }
 
-#[account]
+#[account(zero_copy)]
 pub struct StakedTokenINfo {
     pub staked_nfts: i8,
     pub staked_list: [Pubkey; 6],
