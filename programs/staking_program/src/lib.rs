@@ -31,10 +31,11 @@ pub mod anchor_nft_staking {
 
 
     pub fn stake(ctx: Context<Stake>) -> Result<()> {
-        let index = ctx.accounts.stake_list.staked_nfts as usize;
-        ctx.accounts.stake_list.staked_list[index] = ctx.accounts.nft_mint.key();
-        ctx.accounts.stake_list.new_stake(ctx.accounts.nft_mint.key());
-        msg!("{:?}", ctx.accounts.stake_list.staked_list);
+    
+        let index = ctx.accounts.stake_list.load_mut()?.staked_nfts as usize;
+        ctx.accounts.stake_list.load_mut()?.staked_list[5] = ctx.accounts.nft_mint.key();
+
+        msg!("{:?}", ctx.accounts.stake_list.load_mut()?.staked_list);
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
         
@@ -245,14 +246,8 @@ pub struct Stake<'info> {
         bump
     )]
     pub global_state: Account<'info, GlobalStake>,
-    #[account(
-        init_if_needed,
-        payer=user,
-        space = std::mem::size_of::<StakedTokenINfo>() + 12,
-        seeds = [user.key().as_ref(), b"stake_list".as_ref()],
-        bump
-    )]
-    pub stake_list: Account<'info, StakedTokenINfo>,
+    #[account(zero)]
+    pub stake_list: AccountLoader<'info, StakedTokenINfo>,
     /// CHECK: Manual validation
     #[account(mut, seeds=["authority".as_bytes().as_ref()], bump)]
     pub program_authority: UncheckedAccount<'info>,
