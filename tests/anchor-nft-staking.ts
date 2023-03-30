@@ -39,7 +39,6 @@ describe("anchor-nft-staking", () => {
         nftTokenAccount: nft.tokenAddress,
         nftMint: nft.mintAddress,
         nftEdition: nft.masterEditionAddress,
-        stakeList: stakeList.publicKey,
         // stakeList: userFixedPoolKey,
         metadataProgram: METADATA_PROGRAM_ID,
 
@@ -67,7 +66,15 @@ describe("anchor-nft-staking", () => {
   })
 
   it("Unstakes", async () => {
-    await program.methods
+
+    const unstakeprep = await program.methods.prepunstake().accounts({
+      nftTokenAccount: nft.tokenAddress,
+      nftMint: nft.mintAddress,
+      nftEdition: nft.masterEditionAddress,
+      metadataProgram: METADATA_PROGRAM_ID,
+    }).rpc()
+    
+    const unstake = await program.methods
       .unstake()
       .accounts({
         nftTokenAccount: nft.tokenAddress,
@@ -78,7 +85,8 @@ describe("anchor-nft-staking", () => {
         userStakeAta: tokenAddress,
       })
       .rpc()
-
+      console.log(unstakeprep)
+      console.log(unstake)
 
   })
 })

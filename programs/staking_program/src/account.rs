@@ -1,4 +1,5 @@
 use std::array;
+use std::cell::RefMut;
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke_signed;
@@ -39,6 +40,17 @@ pub struct UserStakeInfo {
   
 }
 
+
+#[account(zero_copy)]
+#[repr(packed)]
+pub struct WalletList {
+    pub amountstaked: i64,
+    pub account_grown: bool,
+    pub special_boosters: i64,
+    pub new_user: [i8; 7],
+    pub mintlist: [Pubkey; 319], 
+}
+
 #[account(zero_copy)]
 pub struct StakedTokenINfo {
     pub staked_nfts: i8,
@@ -51,7 +63,37 @@ pub struct GlobalStake {
     pub global_nft_count: i64
 }
 
+pub fn new_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey) {
 
+    msg!("Adding Current NFT to list");
+    let index = account.amountstaked;
+
+    account.mintlist[index as usize] = tokenmint;
+    msg!("Index: {:?}", index);
+    msg!("Done: Added: {:?}", account.mintlist[index as usize]);
+    
+    account.amountstaked += 1;
+    let mut amountstaked = account.amountstaked;
+    msg!("Amount Staked: {:?}", amountstaked)
+    
+}
+
+pub fn remove_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey, system_prgm: Pubkey) {
+    let index = account.mintlist.iter().position(|&x| x == tokenmint).unwrap();
+    let stakecount = account.amountstaked;
+    account.mintlist[index] = system_prgm;
+    account.amountstaked -= 1;
+}
+
+pub fn calc_rate( amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64
+{
+   let dailyrwrd = 10;
+   let clock = Clock::get().unwrap();
+   let staked_seconds = clock.unix_timestamp - laststaked;
+   let stakedrate: i64 = (staked_seconds) * (amountstaked as i64) / 60 * 60 * 24 * i64::pow(10, 9) * (dailyrwrd as i64) + tokensowed; 
+    msg!("Tokens Owed To User : {}", stakedrate);
+   return stakedrate;
+}
 
 // Account Functions 
 
@@ -61,26 +103,22 @@ impl UserStakeInfo {
         msg!("Total NFTs Staked: {}", self.staked_amount)
     }
 
-    pub fn calc_rate(&mut self, amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64
-     {
-        let dailyrwrd = 10;
-        let clock = Clock::get().unwrap();
-        let staked_seconds = clock.unix_timestamp - laststaked;
-        let stakedrate: i64 = (staked_seconds) * (amountstaked as i64) / 60 * 60 * 24 * i64::pow(10, 9) * (dailyrwrd as i64) + tokensowed; 
-         msg!("Tokens Owed To User : {}", stakedrate);
-        return stakedrate;
-    }
+
+
+
 
 
     pub fn remove_stake(&mut self, item: Pubkey) {
         self.staked_amount -= 1;
-        
+    
     }
     // pub fn new_unstake(&mut self, owner: Pubkey, nft_mint: Pubkey, now: i64) {
     //     require!((self.user_pubkey == owner), StakeError::InvalidOwner);
         
     // }
 } 
+
+
 
 impl StakedTokenINfo {
     pub fn new_stake(&mut self,item: Pubkey) {
