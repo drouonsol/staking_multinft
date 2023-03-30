@@ -41,7 +41,7 @@ pub mod anchor_nft_staking {
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
         let mut walletlist = ctx.accounts.stake_account_list.load_mut()?;
-        msg!("Walletlist: {:?}",walletlist.mintlist[1]);
+      
         new_stake(walletlist, ctx.accounts.nft_mint.key());
         let cpi_approve_program = ctx.accounts.token_program.to_account_info();
         let cpi_approve_accounts = Approve {
@@ -134,7 +134,7 @@ pub fn prepunstake(ctx: Context<PrepUnstake>) -> Result<()> {
      msg!("Prepairing Unstake");
     let mut walletlist = ctx.accounts.stake_account_list.load_mut()?;
     let clock = Clock::get()?;
-    let mut stakeamount = walletlist.amountstaked;
+    let  stakeamount = walletlist.amountstaked;
     ctx.accounts.stake_account_state.tokens_owed = calc_rate(stakeamount as i8 ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
     ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
     remove_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.system_program.key());
