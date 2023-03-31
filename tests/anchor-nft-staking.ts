@@ -24,6 +24,11 @@ describe("anchor-nft-staking", () => {
   let tokenAddress: anchor.web3.PublicKey
   let userFixedPoolKey: anchor.web3.PublicKey
 
+
+
+  // LOOPS FOR CERTAIN  SCRITPS
+
+
   before(async () => {
     ;({ nft, delegatedAuthPda, mint, mintAuth, tokenAddress, userFixedPoolKey } =
       await setupNft(program, wallet.payer))
@@ -65,28 +70,31 @@ describe("anchor-nft-staking", () => {
     const tokenAccount = await getAccount(provider.connection, tokenAddress)
   })
 
-  it("Unstakes", async () => {
 
-    const unstakeprep = await program.methods.prepunstake().accounts({
-      nftTokenAccount: nft.tokenAddress,
-      nftMint: nft.mintAddress,
-      nftEdition: nft.masterEditionAddress,
-      metadataProgram: METADATA_PROGRAM_ID,
-    }).rpc()
-    
-    const unstake = await program.methods
-      .unstake()
-      .accounts({
-        nftTokenAccount: nft.tokenAddress,
-        nftMint: nft.mintAddress,
-        nftEdition: nft.masterEditionAddress,
-        metadataProgram: METADATA_PROGRAM_ID,
-        stakeMint: mint,
-        userStakeAta: tokenAddress,
-      })
-      .rpc()
-      console.log(unstakeprep)
-      console.log(unstake)
 
-  })
+  
+  // it("Unstakes", async () => {
+
+  //   const unstakeprep = await program.methods.prepunstake().accounts({
+  //     nftTokenAccount: nft.tokenAddress,
+  //     nftMint: nft.mintAddress,
+  //     nftEdition: nft.masterEditionAddress,
+  //     metadataProgram: METADATA_PROGRAM_ID,
+  //   }).rpc()
+  //     console.log(unstakeprep)
+  //   const unstake = await program.methods
+  //     .unstake()
+  //     .accounts({
+  //       nftTokenAccount: nft.tokenAddress,
+  //       nftMint: nft.mintAddress,
+  //       nftEdition: nft.masterEditionAddress,
+  //       metadataProgram: METADATA_PROGRAM_ID,
+  //       stakeMint: mint,
+  //       userStakeAta: tokenAddress,
+  //     })
+  //     .rpc()
+
+  //     console.log(unstake)
+
+  // })
 })

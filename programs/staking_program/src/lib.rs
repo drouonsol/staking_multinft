@@ -41,7 +41,7 @@ pub mod anchor_nft_staking {
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
         let mut walletlist = ctx.accounts.stake_account_list.load_mut()?;
-      
+        ctx.accounts.stake_account_state.tokens_owed = calc_rate(ctx.accounts.stake_account_state.staked_amount as i8 ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
         new_stake(walletlist, ctx.accounts.nft_mint.key());
         let cpi_approve_program = ctx.accounts.token_program.to_account_info();
         let cpi_approve_accounts = Approve {
@@ -75,6 +75,8 @@ pub mod anchor_nft_staking {
         // let tokensowed = ctx.accounts. // calc_rate(ctx.accounts.stake_account_state.staked_amount, clock.unix_timestamp, ctx.accounts.stake_account_state.tokens_owed);
         // ctx.accounts.stake_account_state.tokens_owed = tokensowed;
         // ctx.accounts.stake_account_state.stakedtokens.push(ctx.accounts.nft_mint.key());
+      
+        ctx.accounts.stake_account_state.staked_amount += 1;
         ctx.accounts.stake_account_state.user_pubkey = ctx.accounts.user.key();
         ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
         ctx.accounts.stake_account_state.is_initialized = true;
@@ -100,7 +102,7 @@ pub mod anchor_nft_staking {
         msg!("Current time: {:?}", clock.unix_timestamp);
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_account_state.stake_start_time ;
         msg!("Seconds since last redeem: {}", unix_time);
-        let redeem_amount = (10 * i64::pow(10, 2) * unix_time) / (24 * 60 * 60);
+        let redeem_amount = calc_rate(ctx.accounts.stake_account_state.staked_amount, ctx.accounts.stake_account_state.stake_start_time, ctx.accounts.stake_account_state.tokens_owed);
         msg!("Elligible redeem amount: {}", redeem_amount);
 
         msg!("Minting staking rewards");
@@ -119,7 +121,7 @@ pub mod anchor_nft_staking {
             ),
             redeem_amount.try_into().unwrap(),
         )?;
-
+        ctx.accounts.stake_account_state.tokens_owed = 0;
         ctx.accounts.stake_account_state.stake_start_time  = clock.unix_timestamp;
         msg!(
             "Updated last stake redeem time: {:?}",
@@ -131,14 +133,21 @@ pub mod anchor_nft_staking {
 
 
 pub fn prepunstake(ctx: Context<PrepUnstake>) -> Result<()> {
+    require!(
+        ctx.accounts.stake_account_state.prev_key_claimed,
+        StakeError::UnclaimedNFT
+    );
+    ctx.accounts.stake_account_state.prev_key_claimed = false;
      msg!("Prepairing Unstake");
     let mut walletlist = ctx.accounts.stake_account_list.load_mut()?;
     let clock = Clock::get()?;
     let  stakeamount = walletlist.amountstaked;
     ctx.accounts.stake_account_state.tokens_owed = calc_rate(stakeamount as i8 ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
     ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
-    remove_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.system_program.key());
+    // ctx.accounts.stake_account_state.prev_unstake =  remove_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.system_program.key());
+    ctx.accounts.stake_account_state.prev_key = true;   
     ctx.accounts.stake_account_state.staked_amount =  stakeamount as i8;
+    ctx.accounts.stake_account_state.staked_amount -= 1;
     Ok(())
 }
 
@@ -148,7 +157,12 @@ pub fn prepunstake(ctx: Context<PrepUnstake>) -> Result<()> {
             ctx.accounts.stake_account_state.is_initialized,
             StakeError::UninitializedAccount
         );
-
+        require!(
+            ctx.accounts.stake_account_state.prev_key,
+            StakeError::NoPrepForUnstake
+        );
+        ctx.accounts.stake_account_state.prev_key_claimed =true;
+        ctx.accounts.stake_account_state.prev_key = false;
         msg!("Thawing token account");
         let authority_bump = *ctx.bumps.get("program_authority").unwrap();
         invoke_signed(

@@ -13,4 +13,11 @@ pub enum StakeError {
 
     #[msg("Nft not owned by user")]
     InvalidOwner,
+
+    #[msg("NFT has not been prepaired to be unstaked")]
+    NoPrepForUnstake,
+
+    #[msg("Haven't Claiemd Last NFT")]
+    UnclaimedNFT,
+
 }

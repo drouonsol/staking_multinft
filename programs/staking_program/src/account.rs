@@ -2,6 +2,7 @@ use std::array;
 use std::cell::RefMut;
 
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::clock::SECONDS_PER_DAY;
 use anchor_lang::solana_program::program::invoke_signed;
 use anchor_spl::token;
 use anchor_spl::{
@@ -13,7 +14,7 @@ use mpl_token_metadata::{
     ID as MetadataTokenId,
 };
 
-use crate::constants::NFT_MAX;
+use crate::constants::{NFT_MAX, TOKEN_DECIMALS, DAILY_REWARDS};
 
 
 
@@ -36,7 +37,10 @@ pub struct UserStakeInfo {
     pub tokens_owed: i64,
     pub staked_amount: i8,
     pub user_pubkey: Pubkey,
+    pub prev_key: bool,
+    pub prev_key_claimed: bool,
     pub is_initialized: bool, 
+    // pub prev_unstake: Pubkey,
   
 }
 
@@ -72,25 +76,36 @@ pub fn new_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey) {
     msg!("Index: {:?}", index);
     msg!("Done: Added: {:?}", account.mintlist[index as usize]);
     
-    account.amountstaked += 1;
+
     let mut amountstaked = account.amountstaked;
     msg!("Amount Staked: {:?}", amountstaked)
     
 }
 
-pub fn remove_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey, system_prgm: Pubkey) {
+pub fn remove_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey, system_prgm: Pubkey) -> Pubkey {
     let index = account.mintlist.iter().position(|&x| x == tokenmint).unwrap();
     let stakecount = account.amountstaked;
     account.mintlist[index] = system_prgm;
-    account.amountstaked -= 1;
+    
+    return tokenmint;
 }
 
-pub fn calc_rate( amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64
-{
+pub fn check_if_stake(mut account: RefMut<WalletList>, tokenmint: Pubkey) -> bool {
+    if account.mintlist.iter().any(|&x| x == tokenmint) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+pub fn calc_rate( amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64 {
+    msg!("{:?}",amountstaked);
+    msg!("{:?}",laststaked);
+    msg!("{:?}",tokensowed);
    let dailyrwrd = 10;
    let clock = Clock::get().unwrap();
    let staked_seconds = clock.unix_timestamp - laststaked;
-   let stakedrate: i64 = (staked_seconds) * (amountstaked as i64) / 60 * 60 * 24 * i64::pow(10, 9) * (dailyrwrd as i64) + tokensowed; 
+   let stakedrate: i64 = (staked_seconds) * (amountstaked as i64) / SECONDS_PER_DAY as i64 * 100 + tokensowed; 
     msg!("Tokens Owed To User : {}", stakedrate);
    return stakedrate;
 }
