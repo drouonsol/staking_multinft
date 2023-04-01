@@ -14,7 +14,7 @@ use mpl_token_metadata::{
     ID as MetadataTokenId,
 };
 
-use crate::constants::{NFT_MAX, TOKEN_DECIMALS, DAILY_REWARDS};
+use crate::constants::{NFT_MAX, TOKEN_DECIMALS, DAILY_REWARDS, DAY_IN_SEC};
 
 
 
@@ -67,17 +67,16 @@ pub struct GlobalStake {
     pub global_nft_count: i64
 }
 
-pub fn new_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey) {
+pub fn new_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey, amountstaked: i8) {
 
     msg!("Adding Current NFT to list");
-    let index = account.amountstaked;
+    let index = amountstaked;
 
     account.mintlist[index as usize] = tokenmint;
     msg!("Index: {:?}", index);
     msg!("Done: Added: {:?}", account.mintlist[index as usize]);
     
 
-    let mut amountstaked = account.amountstaked;
     msg!("Amount Staked: {:?}", amountstaked)
     
 }
@@ -105,7 +104,10 @@ pub fn calc_rate( amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64 {
    let dailyrwrd = 10;
    let clock = Clock::get().unwrap();
    let staked_seconds = clock.unix_timestamp - laststaked;
-   let stakedrate: i64 = (staked_seconds) * (amountstaked as i64) / SECONDS_PER_DAY as i64 * 100 + tokensowed; 
+   msg!("{:?}",staked_seconds);
+   //
+
+   let stakedrate: i64 = (staked_seconds) * 1000 *  (amountstaked as i64) / DAY_IN_SEC + tokensowed; 
     msg!("Tokens Owed To User : {}", stakedrate);
    return stakedrate;
 }

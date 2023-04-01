@@ -1,4 +1,3 @@
-use std::array;
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke_signed;
@@ -17,7 +16,6 @@ pub mod constants;
 pub mod errors;
 
 use account::*; 
-use constants::*;
 use errors::*;
 
 declare_id!("9DgBFkB3cXa4gAFJjkbggw8TmVLjmkAuDMXtqWGe6R9M");
@@ -40,9 +38,10 @@ pub mod anchor_nft_staking {
         // msg!("{:?}", ctx.accounts.stake_list.load_mut()?.staked_list);
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
-        let mut walletlist = ctx.accounts.stake_account_list.load_mut()?;
-        ctx.accounts.stake_account_state.tokens_owed = calc_rate(ctx.accounts.stake_account_state.staked_amount as i8 ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
-        new_stake(walletlist, ctx.accounts.nft_mint.key());
+        let  walletlist = ctx.accounts.stake_account_list.load_mut()?;
+        let result = calc_rate(ctx.accounts.stake_account_state.staked_amount as i8 ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
+        ctx.accounts.stake_account_state.tokens_owed = result;
+        new_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.stake_account_state.staked_amount);
         let cpi_approve_program = ctx.accounts.token_program.to_account_info();
         let cpi_approve_accounts = Approve {
             to: ctx.accounts.nft_token_account.to_account_info(),
@@ -146,6 +145,7 @@ pub fn prepunstake(ctx: Context<PrepUnstake>) -> Result<()> {
     ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
     // ctx.accounts.stake_account_state.prev_unstake =  remove_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.system_program.key());
     ctx.accounts.stake_account_state.prev_key = true;   
+    ctx.accounts.stake_account_state.tokens_owed = 0;   
     ctx.accounts.stake_account_state.staked_amount =  stakeamount as i8;
     ctx.accounts.stake_account_state.staked_amount -= 1;
     Ok(())

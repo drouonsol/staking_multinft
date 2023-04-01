@@ -9,4 +9,4 @@ pub const TOKEN_DECIMALS: u32 = 2;
 pub const DAILY_REWARDS: i64 = 100;
 
 // Time Constants 
-pub const DAY_IN_SEC: u64 = 60 * 60 * 24; // Seconds In A day 
+pub const DAY_IN_SEC: i64 = 86000; // Seconds In A day 

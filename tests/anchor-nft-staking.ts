@@ -73,28 +73,28 @@ describe("anchor-nft-staking", () => {
 
 
   
-  // it("Unstakes", async () => {
+  it("Unstakes", async () => {
 
-  //   const unstakeprep = await program.methods.prepunstake().accounts({
-  //     nftTokenAccount: nft.tokenAddress,
-  //     nftMint: nft.mintAddress,
-  //     nftEdition: nft.masterEditionAddress,
-  //     metadataProgram: METADATA_PROGRAM_ID,
-  //   }).rpc()
-  //     console.log(unstakeprep)
-  //   const unstake = await program.methods
-  //     .unstake()
-  //     .accounts({
-  //       nftTokenAccount: nft.tokenAddress,
-  //       nftMint: nft.mintAddress,
-  //       nftEdition: nft.masterEditionAddress,
-  //       metadataProgram: METADATA_PROGRAM_ID,
-  //       stakeMint: mint,
-  //       userStakeAta: tokenAddress,
-  //     })
-  //     .rpc()
+    const unstakeprep = await program.methods.prepunstake().accounts({
+      nftTokenAccount: nft.tokenAddress,
+      nftMint: nft.mintAddress,
+      nftEdition: nft.masterEditionAddress,
+      metadataProgram: METADATA_PROGRAM_ID,
+    }).rpc()
+      console.log(unstakeprep)
+    const unstake = await program.methods
+      .unstake()
+      .accounts({
+        nftTokenAccount: nft.tokenAddress,
+        nftMint: nft.mintAddress,
+        nftEdition: nft.masterEditionAddress,
+        metadataProgram: METADATA_PROGRAM_ID,
+        stakeMint: mint,
+        userStakeAta: tokenAddress,
+      })
+      .rpc()
 
-  //     console.log(unstake)
+      console.log(unstake)
 
-  // })
+  })
 })
