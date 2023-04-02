@@ -20,4 +20,7 @@ pub enum StakeError {
     #[msg("Haven't Claiemd Last NFT")]
     UnclaimedNFT,
 
+    #[msg("NFT is not Eligble For Staking")]
+    TokenNotEligble
+
 }

@@ -44,6 +44,7 @@ describe("anchor-nft-staking", () => {
         nftTokenAccount: nft.tokenAddress,
         nftMint: nft.mintAddress,
         nftEdition: nft.masterEditionAddress,
+        nftMetadataAccount: nft.metadataAddress,
         // stakeList: userFixedPoolKey,
         metadataProgram: METADATA_PROGRAM_ID,
 

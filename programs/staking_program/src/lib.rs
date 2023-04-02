@@ -11,6 +11,9 @@ use mpl_token_metadata::{
     ID as MetadataTokenId,
 };
 
+use mpl_token_metadata::state::{PREFIX, EDITION};
+use std::str::FromStr;
+
 pub mod account;
 pub mod constants;
 pub mod errors;
@@ -22,6 +25,10 @@ declare_id!("9DgBFkB3cXa4gAFJjkbggw8TmVLjmkAuDMXtqWGe6R9M");
 
 
 // Functions 
+
+
+
+
 
 
 #[program]
@@ -36,6 +43,17 @@ pub mod anchor_nft_staking {
         // ctx.accounts.stake_list.load_mut()?.staked_list[5] = ctx.accounts.nft_mint.key();
 
         // msg!("{:?}", ctx.accounts.stake_list.load_mut()?.staked_list);
+        // VERIFICATION
+
+
+
+
+
+        // Verify that NFTs is part of the collection 
+
+
+        check_nft(&ctx.accounts.user, &ctx.accounts.nft_mint, &ctx.accounts.nft_token_account,&mut ctx.accounts.metadata_program, &ctx.accounts.nft_metadata_account);
+
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
         let  walletlist = ctx.accounts.stake_account_list.load_mut()?;
@@ -250,8 +268,11 @@ pub struct Stake<'info> {
         associated_token::mint=nft_mint,
         associated_token::authority=user
     )]
+    
     pub nft_token_account: Account<'info, TokenAccount>,
     pub nft_mint: Account<'info, Mint>,
+    /// CHECK: No Operation
+    pub nft_metadata_account: AccountInfo<'info>,
     /// CHECK: Manual validation
     #[account(owner=MetadataTokenId)]
     pub nft_edition: UncheckedAccount<'info>,
@@ -416,3 +437,4 @@ pub struct Unstake<'info> {
     pub rent: Sysvar<'info, Rent>,
     pub metadata_program: Program<'info, Metadata>,
 }
+

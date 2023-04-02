@@ -1,9 +1,11 @@
 use std::array;
 use std::cell::RefMut;
+use std::str::FromStr;
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::clock::SECONDS_PER_DAY;
 use anchor_lang::solana_program::program::invoke_signed;
+use anchor_lang::solana_program::stake::state::Meta;
 use anchor_spl::token;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -13,6 +15,9 @@ use mpl_token_metadata::{
     instruction::{freeze_delegated_account, thaw_delegated_account},
     ID as MetadataTokenId,
 };
+
+
+use mpl_token_metadata::state::{ PREFIX, EDITION, TokenMetadataAccount};
 
 use crate::constants::{NFT_MAX, TOKEN_DECIMALS, DAILY_REWARDS, DAY_IN_SEC};
 
@@ -97,6 +102,10 @@ pub fn check_if_stake(mut account: RefMut<WalletList>, tokenmint: Pubkey) -> boo
     }
 }
 
+
+
+
+
 pub fn calc_rate( amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64 {
     msg!("{:?}",amountstaked);
     msg!("{:?}",laststaked);
@@ -111,6 +120,72 @@ pub fn calc_rate( amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64 {
     msg!("Tokens Owed To User : {}", stakedrate);
    return stakedrate;
 }
+
+
+
+pub fn check_nft(user: &Signer, nft_mint: &Account<Mint>, token_account: &Account<TokenAccount>,metadata_program: &mut Program<Metadata>, nft_metadata_account: &AccountInfo) -> bool {
+
+
+    assert_eq!(token_account.owner, user.key());
+    assert_eq!(token_account.mint, nft_mint.key());
+    assert_eq!(token_account.amount, 1);
+
+    let master_edition_seed = &[
+        PREFIX.as_bytes(),
+        metadata_program.key.as_ref(),
+        token_account.mint.as_ref(),
+        EDITION.as_bytes()
+    ];
+
+    let (master_edition_key, _master_edition_seed) =
+        Pubkey::find_program_address(master_edition_seed, metadata_program.key);
+    
+    // assert_eq!(master_edition_key, ctx.accounts.nft_mint.key());
+          
+    let nft_metadata_account = nft_metadata_account;
+    let nft_mint_account_pubkey =   nft_mint.key();
+
+    let metadata_seed = &[
+        "metadata".as_bytes(),
+        metadata_program.key.as_ref(),
+        nft_mint_account_pubkey.as_ref(),
+    ];
+
+
+    let (metadata_derived_key, _bump_seed) =
+    Pubkey::find_program_address(
+        metadata_seed,
+        metadata_program.key
+    );
+//check that derived key is the current metadata account key
+assert_eq!(metadata_derived_key, nft_metadata_account.key());
+
+if nft_metadata_account.data_is_empty() {
+    return false;
+};
+
+
+//Get the metadata account struct so we can access its values
+let metadata_full_account =
+    &mut mpl_token_metadata::state::Metadata::from_account_info(&nft_metadata_account);
+
+let full_metadata_clone = metadata_full_account.clone();
+
+let expected_creator =
+    Pubkey::from_str("BuSmTfRJFB7ewseydjbC8DaRYYuhPBPLGyeK7cxNLx1k").unwrap();
+    
+    if full_metadata_clone.data {
+        
+    }
+
+    assert_eq!(
+        full_metadata_clone.data.creators.as_ref().unwrap()[0].address,
+        expected_creator
+    );
+
+    return true
+}
+
 
 // Account Functions 
 
