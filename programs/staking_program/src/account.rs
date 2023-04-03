@@ -20,7 +20,7 @@ use mpl_token_metadata::{
 use mpl_token_metadata::state::{ PREFIX, EDITION, TokenMetadataAccount};
 
 use crate::constants::{NFT_MAX, TOKEN_DECIMALS, DAILY_REWARDS, DAY_IN_SEC};
-
+use crate::errors;
 
 
 
@@ -72,10 +72,12 @@ pub struct GlobalStake {
     pub global_nft_count: i64
 }
 
-pub fn new_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey, amountstaked: i8) {
-
+pub fn new_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey, amountstaked: i8,) {
+    let system_progrm =
+    Pubkey::from_str("11111111111111111111111111111111").unwrap();
+    
     msg!("Adding Current NFT to list");
-    let index = amountstaked;
+    let index = account.mintlist.iter().position(|&x| x == system_progrm).unwrap();
 
     account.mintlist[index as usize] = tokenmint;
     msg!("Index: {:?}", index);
@@ -174,58 +176,26 @@ let full_metadata_clone = metadata_full_account.clone();
 let expected_creator =
     Pubkey::from_str("BWxYFcNv1TacJTkVo39eimrJHWiBkNYn2KRebAbEr6ZV").unwrap();
     
+    let mut compiled_without_error: bool = false;
 
+    if full_metadata_clone.as_ref().unwrap().data.creators.as_ref().unwrap()[0].address == expected_creator {
+    msg!("NFT MATCHES CONGRATS");   
+    return true ;  
+    compiled_without_error = true;  
+  } else {
+        return false;
+        compiled_without_error = false;
+       msg!("Token Cannot Be Staked");
+  }
 
     assert_eq!(
         full_metadata_clone.as_ref().unwrap().data.creators.as_ref().unwrap()[0].address,
         expected_creator
     );
 
-    return true
+
 }
 
 
 // Account Functions 
 
-impl UserStakeInfo {
-    pub fn new_stake(&mut self,item: Pubkey) {
-        self.staked_amount += 1;
-        msg!("Total NFTs Staked: {}", self.staked_amount)
-    }
-
-
-
-
-
-
-    pub fn remove_stake(&mut self, item: Pubkey) {
-        self.staked_amount -= 1;
-    
-    }
-    // pub fn new_unstake(&mut self, owner: Pubkey, nft_mint: Pubkey, now: i64) {
-    //     require!((self.user_pubkey == owner), StakeError::InvalidOwner);
-        
-    // }
-} 
-
-
-
-impl StakedTokenINfo {
-    pub fn new_stake(&mut self,item: Pubkey) {
-        msg!("Adding New Staked NFT");
-        self.staked_list[self.staked_nfts as usize] = item;
-        self.staked_nfts += 1;
-        
-    }
-
-    pub fn remove_nft(&mut self, item: Pubkey, systemprogram: Pubkey) {
-        self.staked_nfts -= 1;
-        if !(self.staked_list.contains(&item)) {
-            msg!("Error.")
-        } else {
-            self.staked_nfts -= 1;
-            self.staked_list[self.staked_nfts as usize] = systemprogram;
-        }
-
-    }
-} 

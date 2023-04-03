@@ -52,8 +52,8 @@ pub mod anchor_nft_staking {
         // Verify that NFTs is part of the collection 
 
 
-        check_nft(&ctx.accounts.user, &ctx.accounts.nft_mint, &ctx.accounts.nft_token_account,&mut ctx.accounts.metadata_program, &ctx.accounts.nft_metadata_account);
-
+        let nft_eligble = check_nft(&ctx.accounts.user, &ctx.accounts.nft_mint, &ctx.accounts.nft_token_account,&mut ctx.accounts.metadata_program, &ctx.accounts.nft_metadata_account);
+        require!(nft_eligble, errors::StakeError::TokenNotEligble);
         let clock = Clock::get().unwrap();
         msg!("Approving delegate");
         let  walletlist = ctx.accounts.stake_account_list.load_mut()?;
@@ -106,6 +106,7 @@ pub mod anchor_nft_staking {
             ctx.accounts.stake_account_state.is_initialized,
             errors::StakeError::UninitializedAccount
         );
+
 
 
 
