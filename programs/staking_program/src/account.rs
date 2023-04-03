@@ -172,14 +172,12 @@ let metadata_full_account =
 let full_metadata_clone = metadata_full_account.clone();
 
 let expected_creator =
-    Pubkey::from_str("BuSmTfRJFB7ewseydjbC8DaRYYuhPBPLGyeK7cxNLx1k").unwrap();
+    Pubkey::from_str("BWxYFcNv1TacJTkVo39eimrJHWiBkNYn2KRebAbEr6ZV").unwrap();
     
-    if full_metadata_clone.data {
-        
-    }
+
 
     assert_eq!(
-        full_metadata_clone.data.creators.as_ref().unwrap()[0].address,
+        full_metadata_clone.as_ref().unwrap().data.creators.as_ref().unwrap()[0].address,
         expected_creator
     );
 
