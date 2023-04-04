@@ -92,7 +92,7 @@ pub fn remove_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey, system_pr
     let index = account.mintlist.iter().position(|&x| x == tokenmint).unwrap();
     let stakecount = account.amountstaked;
     account.mintlist[index] = system_prgm;
-    
+    msg!("Index : {:?}", index);
     return tokenmint;
 }
 

@@ -24,31 +24,19 @@ use errors::*;
 declare_id!("9DgBFkB3cXa4gAFJjkbggw8TmVLjmkAuDMXtqWGe6R9M");
 
 
-// Functions 
-
-
-
-
+// Functions   
 
 
 #[program]
 pub mod anchor_nft_staking {
     use super::*;
 
-
-
-    pub fn stake(ctx: Context<Stake>) -> Result<()> {
-        
+    pub fn stake(ctx: Context<Stake>) -> Result<()> {        
         // let index = ctx.accounts.stake_list.load_mut()?.staked_nfts as usize;
         // ctx.accounts.stake_list.load_mut()?.staked_list[5] = ctx.accounts.nft_mint.key();
 
         // msg!("{:?}", ctx.accounts.stake_list.load_mut()?.staked_list);
         // VERIFICATION
-
-
-
-
-
         // Verify that NFTs is part of the collection 
 
 
@@ -100,6 +88,15 @@ pub mod anchor_nft_staking {
         // msg!("{:?}", ctx.accounts.stake_account_state.stakedtokens);
         Ok(())
     }
+
+
+
+    pub fn increase_stake_capacity(ctx: Context<IncreaseSpace>) -> Result<()> {
+        Ok(())
+    }
+
+
+
 
     pub fn redeem(ctx: Context<Redeem>) -> Result<()> {
         require!(
@@ -162,7 +159,7 @@ pub fn prepunstake(ctx: Context<PrepUnstake>) -> Result<()> {
     let  stakeamount = walletlist.amountstaked;
     ctx.accounts.stake_account_state.tokens_owed = calc_rate(stakeamount as i8 ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
     ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
-    // ctx.accounts.stake_account_state.prev_unstake =  remove_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.system_program.key());
+    remove_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.system_program.key());
     ctx.accounts.stake_account_state.prev_key = true;   
     ctx.accounts.stake_account_state.tokens_owed = 0;   
     ctx.accounts.stake_account_state.staked_amount =  stakeamount as i8;
@@ -310,6 +307,39 @@ pub struct Stake<'info> {
     pub system_program: Program<'info, System>,
     pub metadata_program: Program<'info, Metadata>,
 }
+
+
+#[derive(Accounts)]
+pub struct IncreaseSpace<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+  
+    #[account(
+        init_if_needed, 
+        seeds = [user.key().as_ref(), b"stake_global_elysian".as_ref()],
+        bump, 
+        payer=user, 
+        space= 10 * 1024 as usize)]
+    pub stake_account_list: AccountLoader<'info, WalletList>,
+    // #[account(zero)]
+    // pub stake_list: AccountLoader<'info, StakedTokenINfo>,
+    #[account(
+        init_if_needed,
+        payer=user,
+        space = std::mem::size_of::<GlobalStake>() + 12,
+        seeds = [b"account_global".as_ref()],
+        bump
+    )]
+    pub global_state: Account<'info, GlobalStake>,
+
+    /// CHECK: Manual validation
+    #[account(mut, seeds=["authority".as_bytes().as_ref()], bump)]
+    pub program_authority: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
+
+}
+
+
 
 #[derive(Accounts)]
 pub struct Redeem<'info> {
