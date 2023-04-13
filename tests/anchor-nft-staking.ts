@@ -23,15 +23,39 @@ describe("anchor-nft-staking", () => {
   let mint: anchor.web3.PublicKey
   let tokenAddress: anchor.web3.PublicKey
   let userFixedPoolKey: anchor.web3.PublicKey
-
+  let NftListPda: anchor.web3.PublicKey
 
 
   // LOOPS FOR CERTAIN  SCRITPS
 
 
   before(async () => {
-    ;({ nft, delegatedAuthPda, mint, mintAuth, tokenAddress, userFixedPoolKey } =
+    ;({ nft, delegatedAuthPda, mint, mintAuth, tokenAddress, userFixedPoolKey,NftListPda } =
       await setupNft(program, wallet.payer))
+  })
+
+  it("New Account", async () => {
+
+    // Add your test here.
+    const stake = await program.methods
+      .createStakingAccount()
+      .accounts({
+        
+
+        // stakeList: userFixedPoolKey,
+
+      })
+      .rpc({
+        skipPreflight: true
+      })
+
+      console.log(stake)
+
+  })
+
+  it("Increases Space", async () => {
+    const incrspace = await program.methods.increaseStakeCapacity().accounts({stakeAccountList: NftListPda}).rpc({skipPreflight: true})
+    console.log(incrspace)
   })
 
   it("Stakes", async () => {
@@ -45,9 +69,10 @@ describe("anchor-nft-staking", () => {
         nftMint: nft.mintAddress,
         nftEdition: nft.masterEditionAddress,
         nftMetadataAccount: nft.metadataAddress,
+        stakeAccountList: NftListPda,
         // stakeList: userFixedPoolKey,
         metadataProgram: METADATA_PROGRAM_ID,
-
+         
       })
       .rpc({
         skipPreflight: true
@@ -65,7 +90,9 @@ describe("anchor-nft-staking", () => {
         stakeMint: mint,
         userStakeAta: tokenAddress,
       })
-      .rpc()
+      .rpc({
+        skipPreflight: true
+      })
 
     console.log(redeem)
     const tokenAccount = await getAccount(provider.connection, tokenAddress)
@@ -79,6 +106,7 @@ describe("anchor-nft-staking", () => {
     const unstakeprep = await program.methods.prepunstake().accounts({
       nftTokenAccount: nft.tokenAddress,
       nftMint: nft.mintAddress,
+      stakeAccountList: NftListPda,
       nftEdition: nft.masterEditionAddress,
       metadataProgram: METADATA_PROGRAM_ID,
     }).rpc()

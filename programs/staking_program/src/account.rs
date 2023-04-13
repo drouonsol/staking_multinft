@@ -57,8 +57,9 @@ pub struct WalletList {
     pub account_grown: bool,
     pub special_boosters: i64,
     pub new_user: [i8; 7],
-    pub mintlist: [Pubkey; 319], 
+    pub mintlist: [Pubkey; 63], 
 }
+
 
 #[account(zero_copy)]
 pub struct StakedTokenINfo {
@@ -118,7 +119,7 @@ pub fn calc_rate( amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64 {
    msg!("{:?}",staked_seconds);
    //
 
-   let stakedrate: i64 = (staked_seconds) * 1000 *  (amountstaked as i64) / DAY_IN_SEC + tokensowed; 
+   let stakedrate: i64 = (staked_seconds) * 100 * 10 *  (amountstaked as i64) / DAY_IN_SEC + tokensowed; 
     msg!("Tokens Owed To User : {}", stakedrate);
    return stakedrate;
 }
@@ -126,9 +127,7 @@ pub fn calc_rate( amountstaked : i8,laststaked: i64,tokensowed: i64) -> i64 {
 
 
 pub fn check_nft(user: &Signer, nft_mint: &Account<Mint>, token_account: &Account<TokenAccount>,metadata_program: &mut Program<Metadata>, nft_metadata_account: &AccountInfo) -> bool {
-
-
-    assert_eq!(token_account.owner, user.key());
+    assert_eq!(token_account.owner, user.key())  ;
     assert_eq!(token_account.mint, nft_mint.key());
     assert_eq!(token_account.amount, 1);
 
@@ -177,8 +176,8 @@ let expected_creator =
     Pubkey::from_str("BWxYFcNv1TacJTkVo39eimrJHWiBkNYn2KRebAbEr6ZV").unwrap();
     
     let mut compiled_without_error: bool = false;
-
     if full_metadata_clone.as_ref().unwrap().data.creators.as_ref().unwrap()[0].address == expected_creator {
+
     msg!("NFT MATCHES CONGRATS");   
     return true ;  
     compiled_without_error = true;  

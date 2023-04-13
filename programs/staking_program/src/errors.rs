@@ -21,6 +21,9 @@ pub enum StakeError {
     UnclaimedNFT,
 
     #[msg("NFT is not Eligble For Staking")]
-    TokenNotEligble
+    TokenNotEligble,
+
+    #[msg("Account Has Already Been Initiliazed")]
+    AlreadyInit
 
 }

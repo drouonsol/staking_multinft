@@ -52,6 +52,14 @@ export const setupNft = async (program, payer) => {
     program.programId
   )
 
+
+
+  const [NftListPda] = await anchor.web3.PublicKey.findProgramAddress(
+    [payer.publicKey.toBuffer(), Buffer.from("infamousstakingnew")],
+    program.programId
+  )
+
+
   const mint = await createMint(
     program.provider.connection,
     payer,
@@ -70,5 +78,6 @@ export const setupNft = async (program, payer) => {
     mintAuth: mintAuth,
     tokenAddress: tokenAddress,
     userFixedPoolKey: userFixedPoolKey,
+    NftListPda: NftListPda,
   }
 }
