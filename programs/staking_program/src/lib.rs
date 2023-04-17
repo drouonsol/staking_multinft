@@ -51,9 +51,9 @@ pub mod anchor_nft_staking {
         // VERIFICATION
         // Verify that NFTs is part of the collection 
         
-
-        let nft_eligble = check_nft(&ctx.accounts.user, &ctx.accounts.nft_mint, &ctx.accounts.nft_token_account,&mut ctx.accounts.metadata_program, &ctx.accounts.nft_metadata_account);
-        require!(nft_eligble, errors::StakeError::TokenNotEligble);
+        // Commenting Out For Now
+        // let nft_eligble = check_nft(&ctx.accounts.user, &ctx.accounts.nft_mint, &ctx.accounts.nft_token_account,&mut ctx.accounts.metadata_program, &ctx.accounts.nft_metadata_account);
+        // require!(nft_eligble, errors::StakeError::TokenNotEligble);
         let clock = Clock::get().unwrap();
         
         msg!("Approving delegate");

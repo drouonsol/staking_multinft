@@ -158,8 +158,7 @@ pub fn check_nft(user: &Signer, nft_mint: &Account<Mint>, token_account: &Accoun
         metadata_seed,
         metadata_program.key
     );
-//check that derived key is the current metadata account key
-assert_eq!(metadata_derived_key, nft_metadata_account.key());
+
 
 if nft_metadata_account.data_is_empty() {
     return false;
@@ -174,7 +173,6 @@ let full_metadata_clone = metadata_full_account.clone();
 
 let expected_creator =
     Pubkey::from_str("BWxYFcNv1TacJTkVo39eimrJHWiBkNYn2KRebAbEr6ZV").unwrap();
-    
     let mut compiled_without_error: bool = false;
     if full_metadata_clone.as_ref().unwrap().data.creators.as_ref().unwrap()[0].address == expected_creator {
 
