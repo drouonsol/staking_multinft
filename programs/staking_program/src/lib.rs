@@ -12,7 +12,10 @@ use mpl_token_metadata::{
     ID as MetadataTokenId,
 };
 
-use mpl_token_metadata::state::{PREFIX, EDITION};
+
+
+use mpl_token_metadata::state::{ PREFIX, EDITION, TokenMetadataAccount};
+use mpl_token_metadata::state::{ Metadata};
 use std::str::FromStr;
 
 pub mod account;
@@ -43,7 +46,64 @@ pub mod anchor_nft_staking {
     }
 
 
-    pub fn stake(ctx: Context<Stake>) -> Result<()> {        
+    pub fn stake(ctx: Context<Stake>) -> Result<()> {       
+        let clock = Clock::get().unwrap();
+
+
+
+        let expected_creator =
+        Pubkey::from_str("BWxYFcNv1TacJTkVo39eimrJHWiBkNYn2KRebAbEr6ZV").unwrap();
+
+    // // if nft_metadata_account.data_is_empty() {
+    // //     return false;
+    // // };
+    
+    
+    // //Get the metadata account struct so we can access its values
+    msg!("{:?}",ctx.accounts.nft_metadata_account.data_len());
+    assert_ne!(ctx.accounts.nft_metadata_account.data_len(), 0);   
+
+    let metadata: Metadata = Metadata::from_account_info(&ctx.accounts.nft_metadata_account)?;
+    msg!("{:?}", metadata.update_authority);
+
+    require!(metadata.update_authority == expected_creator, StakeError::TokenNotEligble);
+        // let metadata: Metadata = Metadata::from_account_info(&ctx.accounts.nft_metadata_account.to_account_info())?;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if ctx.accounts.stake_account_state.stake_start_time == 0 {
+            ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
+        } 
         // let index = ctx.accounts.stake_list.load_mut()?.staked_nfts as usize;
         // ctx.accounts.stake_list.load_mut()?.staked_list[5] = ctx.accounts.nft_mint.key();
 
@@ -52,16 +112,18 @@ pub mod anchor_nft_staking {
         // Verify that NFTs is part of the collection 
         
         // Commenting Out For Now
-        // let nft_eligble = check_nft(&ctx.accounts.user, &ctx.accounts.nft_mint, &ctx.accounts.nft_token_account,&mut ctx.accounts.metadata_program, &ctx.accounts.nft_metadata_account);
-        // require!(nft_eligble, errors::StakeError::TokenNotEligble);
-        let clock = Clock::get().unwrap();
+
+        let nft_eligble = check_nft(&ctx.accounts.user, &ctx.accounts.nft_mint, &ctx.accounts.nft_token_account,&mut ctx.accounts.metadata_program, &ctx.accounts.nft_metadata_account);
+
+
         
         msg!("Approving delegate");
         let mut walletlist = ctx.accounts.stake_account_list.load_mut()?;
         walletlist.new_user[1] = 1;
         let result = calc_rate(ctx.accounts.stake_account_state.staked_amount as i8 ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
         ctx.accounts.stake_account_state.tokens_owed = result;
-        new_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.stake_account_state.staked_amount);
+        ctx.accounts.stake_account_state.staked_amount += 1;
+        new_stake(walletlist, ctx.accounts.nft_mint.key(),&mut  ctx.accounts.stake_account_state);
         let cpi_approve_program = ctx.accounts.token_program.to_account_info();
         let cpi_approve_accounts = Approve {
             to: ctx.accounts.nft_token_account.to_account_info(),
@@ -95,7 +157,7 @@ pub mod anchor_nft_staking {
         // ctx.accounts.stake_account_state.tokens_owed = tokensowed;
         // ctx.accounts.stake_account_state.stakedtokens.push(ctx.accounts.nft_mint.key());
       
-        ctx.accounts.stake_account_state.staked_amount += 1;
+
         ctx.accounts.stake_account_state.user_pubkey = ctx.accounts.user.key();
         ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
         ctx.accounts.stake_account_state.is_initialized = true;
@@ -123,6 +185,7 @@ pub mod anchor_nft_staking {
 
         let clock = Clock::get()?;
 
+        
         msg!(
             "Stake last redeem: {:?}",
             ctx.accounts.stake_account_state.stake_start_time 
@@ -131,9 +194,11 @@ pub mod anchor_nft_staking {
         msg!("Current time: {:?}", clock.unix_timestamp);
         let unix_time = clock.unix_timestamp - ctx.accounts.stake_account_state.stake_start_time ;
         msg!("Seconds since last redeem: {}", unix_time);
-        let redeem_amount = calc_rate(ctx.accounts.stake_account_state.staked_amount, ctx.accounts.stake_account_state.stake_start_time, ctx.accounts.stake_account_state.tokens_owed);
+        let mut redeem_amount = calc_rate(ctx.accounts.stake_account_state.staked_amount, ctx.accounts.stake_account_state.stake_start_time, ctx.accounts.stake_account_state.tokens_owed);
         msg!("Elligible redeem amount: {}", redeem_amount);
-
+        if redeem_amount < 0 {
+            redeem_amount = 0 
+        }
         msg!("Minting staking rewards");
         token::mint_to(
             CpiContext::new_with_signer(
@@ -162,21 +227,20 @@ pub mod anchor_nft_staking {
 
 
 pub fn prepunstake(ctx: Context<PrepUnstake>) -> Result<()> {
-    require!(
-        ctx.accounts.stake_account_state.prev_key_claimed,
-        StakeError::UnclaimedNFT
-    );
+  
+    let mut index = find_stake(ctx.accounts.stake_account_list.load_mut()?,ctx.accounts.nft_mint.key());
+
     ctx.accounts.stake_account_state.prev_key_claimed = false;
      msg!("Prepairing Unstake");
-    let mut walletlist = ctx.accounts.stake_account_list.load_mut()?;
+
+
     let clock = Clock::get()?;
-    let  stakeamount = walletlist.amountstaked;
-    ctx.accounts.stake_account_state.tokens_owed = calc_rate(stakeamount as i8 ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
+    let  stakeamount = ctx.accounts.stake_account_list.load_mut()?.amountstaked;
+    msg!("{:?}", ctx.accounts.stake_account_list.load_mut()?.mintlist[300]);
+    ctx.accounts.stake_account_state.tokens_owed = calc_rate(ctx.accounts.stake_account_state.staked_amount ,ctx.accounts.stake_account_state.stake_start_time ,ctx.accounts.stake_account_state.tokens_owed);
     ctx.accounts.stake_account_state.stake_start_time = clock.unix_timestamp;
-    remove_stake(walletlist, ctx.accounts.nft_mint.key(), ctx.accounts.system_program.key());
+    remove_stake(ctx.accounts.stake_account_list.load_mut()?, ctx.accounts.nft_mint.key(), ctx.accounts.system_program.key(), &mut ctx.accounts.stake_account_state);
     ctx.accounts.stake_account_state.prev_key = true;   
-    ctx.accounts.stake_account_state.tokens_owed = 0;   
-    ctx.accounts.stake_account_state.staked_amount =  stakeamount as i8;
     ctx.accounts.stake_account_state.staked_amount -= 1;
     Ok(())
 }
@@ -187,9 +251,10 @@ pub fn prepunstake(ctx: Context<PrepUnstake>) -> Result<()> {
             ctx.accounts.stake_account_state.is_initialized,
             StakeError::UninitializedAccount
         );
+       
         require!(
-            ctx.accounts.stake_account_state.prev_key,
-            StakeError::NoPrepForUnstake
+        ctx.accounts.stake_account_state.prevunstake.token_mint == ctx.accounts.nft_mint.key(),
+        StakeError::NoPrepForUnstake
         );
         ctx.accounts.stake_account_state.prev_key_claimed =true;
         ctx.accounts.stake_account_state.prev_key = false;
@@ -259,7 +324,7 @@ pub fn prepunstake(ctx: Context<PrepUnstake>) -> Result<()> {
             "Updated last stake redeem time: {:?}",
             ctx.accounts.stake_account_state.stake_start_time 
         );
-
+        ctx.accounts.stake_account_state.tokens_owed = 0;   
 
 
         Ok(())
@@ -276,7 +341,7 @@ pub struct NewAccount<'info> {
         init_if_needed,
         space = 2 * 1024,
         payer = user, 
-        seeds = [user.key().as_ref(), b"infamousstakingnew".as_ref()],
+        seeds = [user.key().as_ref(), b"infamousstakingnewtestY".as_ref()],
         bump
     )]
     pub stake_account_list: AccountLoader<'info, WalletList>,
@@ -307,7 +372,7 @@ pub struct Stake<'info> {
         init_if_needed,
         payer=user,
         space = std::mem::size_of::<UserStakeInfo>() + 12,
-        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
+        seeds = [user.key().as_ref(), b"stake_global2".as_ref()],
         bump
     )]
     pub stake_account_state: Account<'info, UserStakeInfo>,
@@ -330,7 +395,7 @@ pub struct Stake<'info> {
     pub program_authority: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-    pub metadata_program: Program<'info, Metadata>,
+    pub metadata_program: Program<'info, MetadataTest>,
 }
 
 
@@ -355,14 +420,10 @@ pub struct IncreaseSpace<'info> {
 pub struct Redeem<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+
     #[account(
         mut,
-        token::authority=user
-    )]
-    pub nft_token_account: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
+        seeds = [user.key().as_ref(), b"stake_global2".as_ref()],
         bump,
     )]
     pub stake_account_state: Account<'info, UserStakeInfo>,
@@ -404,7 +465,7 @@ pub struct PrepUnstake<'info> {
         init_if_needed,
         payer=user,
         space = std::mem::size_of::<UserStakeInfo>() + 12,
-        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
+        seeds = [user.key().as_ref(), b"stake_global2".as_ref()],
         bump
     )]
     pub stake_account_state: Account<'info, UserStakeInfo>,
@@ -428,7 +489,7 @@ pub struct PrepUnstake<'info> {
     pub program_authority: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-    pub metadata_program: Program<'info, Metadata>,
+    pub metadata_program: Program<'info, MetadataTest>,
 } 
 
 #[derive(Accounts)]
@@ -441,13 +502,12 @@ pub struct Unstake<'info> {
     )]
     pub nft_token_account: Account<'info, TokenAccount>,
     pub nft_mint: Account<'info, Mint>,
-  
     /// CHECK: Manual validation
     #[account(owner=MetadataTokenId)]
     pub nft_edition: UncheckedAccount<'info>,
     #[account(
         mut,
-        seeds = [user.key().as_ref(), b"stake_global".as_ref()],
+        seeds = [user.key().as_ref(), b"stake_global2".as_ref()],
         bump
     )]
     pub stake_account_state: Account<'info, UserStakeInfo>,
@@ -473,6 +533,6 @@ pub struct Unstake<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
-    pub metadata_program: Program<'info, Metadata>,
+    pub metadata_program: Program<'info, MetadataTest>,
 }
 
