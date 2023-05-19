@@ -74,7 +74,7 @@ pub struct WalletList {
     pub account_grown: bool,
     pub special_boosters: i64,
     pub new_user: [i8; 7],
-    pub mintlist: [Pubkey; 319], 
+    pub mintlist: [Pubkey; 63], 
 }
 
 
@@ -89,6 +89,8 @@ pub struct StakedTokenINfo {
 pub struct GlobalStake {
     pub global_nft_count: i64
 }
+
+
 
 pub fn new_stake(mut account: RefMut<WalletList>,tokenmint: Pubkey,stakeinfo: &mut  anchor_lang::prelude::Account<UserStakeInfo>) {
     let system_progrm =

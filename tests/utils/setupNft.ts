@@ -55,7 +55,7 @@ export const setupNft = async (program, payer) => {
 
 
   const [NftListPda] = await anchor.web3.PublicKey.findProgramAddress(
-    [payer.publicKey.toBuffer(), Buffer.from("infamousstakingnewtestY")],
+    [payer.publicKey.toBuffer(), Buffer.from("infamousstakingnew")],
     program.programId
   )
 
@@ -68,9 +68,7 @@ export const setupNft = async (program, payer) => {
     2
   )
   console.log("Mint pubkey: ", mint.toBase58())
-
   const tokenAddress = await getAssociatedTokenAddress(mint, payer.publicKey)
-
   return {
     nft: nft,
     delegatedAuthPda: delegatedAuthPda,

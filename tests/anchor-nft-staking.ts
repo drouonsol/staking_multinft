@@ -53,10 +53,10 @@ describe("anchor-nft-staking", () => {
 
   })
 
-  it("Increases Space", async () => {
-    const incrspace = await program.methods.increaseStakeCapacity().accounts({stakeAccountList: NftListPda}).rpc({skipPreflight: true})
-    console.log(incrspace)
-  })
+  // it("Increases Space", async () => {
+  //   const incrspace = await program.methods.increaseStakeCapacity().accounts({stakeAccountList: NftListPda}).rpc({skipPreflight: true})
+  //   console.log(incrspace)
+  // })
 
   it("Stakes", async () => {
 
@@ -86,7 +86,7 @@ describe("anchor-nft-staking", () => {
     const redeem = await program.methods
       .redeem()
       .accounts({
-        nftTokenAccount: nft.tokenAddress,
+        
         stakeMint: mint,
         userStakeAta: tokenAddress,
       })
