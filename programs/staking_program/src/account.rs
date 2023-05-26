@@ -52,6 +52,13 @@ pub struct MintInfo2 {
     pub token_mint: Pubkey,
     pub preped: bool
 }
+
+
+#[account]
+pub struct PersonalAccount {
+    stake_mint: Pubkey
+}
+
 #[account]
 pub struct UserStakeInfo {
     pub stake_start_time: i64,

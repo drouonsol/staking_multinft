@@ -54,6 +54,7 @@ export const setupNft = async (program, payer) => {
 
 
 
+
   const [NftListPda] = await anchor.web3.PublicKey.findProgramAddress(
     [payer.publicKey.toBuffer(), Buffer.from("infamousstakingnew")],
     program.programId

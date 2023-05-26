@@ -24,6 +24,8 @@ pub enum StakeError {
     TokenNotEligble,
 
     #[msg("Account Has Already Been Initiliazed")]
-    AlreadyInit
+    AlreadyInit,
 
+    #[msg("You don't have premmision to withdraw the funds")]
+    NoPrem
 }

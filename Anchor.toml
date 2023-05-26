@@ -2,14 +2,14 @@
 seeds = true
 skip-lint = false
 [programs.devnet]
-staking_program = "9AdA14dP96xHcB4DMpJMYt1aRN46PuF74JXov7z3KCHU"
+staking_program = "4VZBMgYfak2krLwYTw9LErqtHsvS3QL3m3kZr6jzWUic"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Devnet"
-wallet = "/home/adrou/Desktop/solana_information/solana_keypair/id.json"
+wallet = "/home/adrou/Desktop/solana_stuff/wallet.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

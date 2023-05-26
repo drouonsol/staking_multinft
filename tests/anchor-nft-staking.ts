@@ -59,7 +59,11 @@ describe("anchor-nft-staking", () => {
   // })
 
   it("Stakes", async () => {
-
+    const [staked_nft_address] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("staked-nft"), nft.mintAddress.toBuffer()],
+      program.programId
+    );
+      console.log(staked_nft_address.toBase58())
     // Add your test here.
     const stake = await program.methods
       .stake()
@@ -72,6 +76,22 @@ describe("anchor-nft-staking", () => {
         stakeAccountList: NftListPda,
         // stakeList: userFixedPoolKey,
         metadataProgram: METADATA_PROGRAM_ID,
+         
+      })
+      .rpc({
+        skipPreflight: true
+      })
+
+      console.log(stake)
+
+  })
+
+  it("Withdrawing Fees", async () => {
+
+    // Add your test here.
+    const stake = await program.methods
+      .withdrawFees()
+      .accounts({
          
       })
       .rpc({
@@ -121,7 +141,7 @@ describe("anchor-nft-staking", () => {
         stakeMint: mint,
         userStakeAta: tokenAddress,
       })
-      .rpc()
+      .rpc({skipPreflight: true})
 
       console.log(unstake)
 
